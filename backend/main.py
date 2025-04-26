@@ -28,7 +28,7 @@ router.include_router(AccountRouter, prefix="/account", tags=["account"])
 router.include_router(ChatRouter, prefix="/chat", tags=["chat"])
 router.include_router(KnowledgeBaseRouter, prefix="/knowledgebase", tags=["knowledgebase"])
 
-app.include_router(router, prefix="/v1/api", tags=["cs"])
+app.include_router(router, prefix="/v1/api")
 
 
 if __name__ == "__main__":
