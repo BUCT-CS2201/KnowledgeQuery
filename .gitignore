@@ -1,0 +1,11 @@
+venv/
+.env
+__pycache__/
+**/__pycache__/
+**/**/__pycache__/
+**/**/**/__pycache__/
+node_modules/
+.DS_Store
+documents_stored/
+backend/.env/
+backend/.idea/
