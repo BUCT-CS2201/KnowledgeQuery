@@ -9,3 +9,4 @@ node_modules/
 documents_stored/
 backend/.env/
 backend/.idea/
+.vscode/
