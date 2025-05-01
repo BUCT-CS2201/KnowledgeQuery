@@ -1,21 +1,66 @@
 import os
+from dotenv import load_dotenv
 from langchain_community.document_loaders import TextLoader, PyPDFLoader, Docx2txtLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-# from langchain_community.embeddings import HuggingFaceEmbeddings
-# 新路径
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Milvus
+from langchain_milvus import Milvus
 import gradio as gr
 from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, utility
+import requests
+import json
+
+# 加载环境变量
+load_dotenv()
 
 # 配置Milvus连接
-MILVUS_HOST = "127.0.0.1"  # Milvus服务器地址
-MILVUS_PORT = "19530"       # Attu界面端口
-MILVUS_SERVICE_PORT = "19530"  # Milvus服务端口
+MILVUS_HOST = os.getenv("MILVUS_HOST", "127.0.0.1")
+MILVUS_PORT = os.getenv("MILVUS_PORT", "19530")
+
+# 大语言模型 API 配置
+ONEAPI_BASE_URL = os.getenv("ONEAPI_BASE_URL", "https://api.siliconflow.cn/v1")
+ONEAPI_API_KEY = os.getenv("ONEAPI_API_KEY", "")  # 从环境变量加载API密钥
+ONEAPI_MODEL = os.getenv("ONEAPI_MODEL", "Qwen/Qwen2.5-VL-72B-Instruct") 
+
+# 初始化嵌入模型 - 使用可靠的公开模型，带错误处理
+def initialize_embedding_model():
+    # 首选模型列表，按优先级排序
+    model_options = [
+        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",  # 多语言支持，384维
+        "sentence-transformers/all-MiniLM-L6-v2",                        # 英文，384维
+        "sentence-transformers/all-mpnet-base-v2"                        # 备选高质量模型，768维
+    ]
+    
+    for model_name in model_options:
+        try:
+            print(f"尝试加载嵌入模型: {model_name}")
+            embeddings = HuggingFaceEmbeddings(model_name=model_name)
+            print(f"成功加载模型: {model_name}")
+            return embeddings, model_name, get_embedding_dimension(model_name)
+        except Exception as e:
+            print(f"加载模型 {model_name} 失败: {str(e)}")
+    
+    # 如果所有模型都失败，抛出异常
+    raise RuntimeError("无法加载任何嵌入模型，请检查网络连接或Hugging Face访问权限")
+
+# 获取模型的嵌入维度
+def get_embedding_dimension(model_name):
+    # 常见模型维度映射
+    model_dimensions = {
+        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2": 384,
+        "sentence-transformers/all-MiniLM-L6-v2": 384,
+        "sentence-transformers/all-mpnet-base-v2": 768
+    }
+    return model_dimensions.get(model_name, 384)  # 默认384维
 
 # 初始化嵌入模型
-model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"  # 多语言支持
-embeddings = HuggingFaceEmbeddings(model_name=model_name)
+try:
+    embeddings, actual_model_name, EMBEDDING_DIMENSION = initialize_embedding_model()
+    print(f"使用嵌入模型: {actual_model_name}, 维度: {EMBEDDING_DIMENSION}")
+except Exception as e:
+    print(f"初始化嵌入模型失败: {str(e)}")
+    print("使用默认值，但程序可能无法正常运行")
+    actual_model_name = "加载失败"
+    EMBEDDING_DIMENSION = 384
 
 # Milvus部署信息
 MILVUS_DEPLOYMENT_GUIDE = """
@@ -44,6 +89,133 @@ docker-compose up -d
 docker-compose down
 ```
 """
+
+# 调用大语言模型API
+def query_llm(prompt, temperature=0.7, max_tokens=1024):
+    try:
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {ONEAPI_API_KEY}"
+        }
+        
+        payload = {
+            "model": ONEAPI_MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": False,
+            "max_tokens": max_tokens,
+            "enable_thinking": False,
+            "thinking_budget": 512,
+            "min_p": 0.05,
+            "stop": None,
+            "temperature": temperature,
+            "top_p": 0.7,
+            "top_k": 50,
+            "frequency_penalty": 0.5,
+            "n": 1,
+            "response_format": {"type": "text"}
+        }
+        
+        response = requests.post(f"{ONEAPI_BASE_URL}/chat/completions", 
+                                headers=headers, 
+                                json=payload)
+        
+        if response.status_code == 200:
+            result = response.json()
+            return result["choices"][0]["message"]["content"]
+        elif response.status_code == 401:
+            # 处理认证错误，如令牌额度用尽
+            error_data = response.json()
+            error_message = error_data.get("error", {}).get("message", "未知错误")
+            return f"API认证错误: {error_message}\n\n请检查API密钥是否有效或账户余额是否充足。"
+        else:
+            return f"API调用失败: {response.status_code} - {response.text}"
+    except Exception as e:
+        return f"调用LLM时出错: {str(e)}"
+
+# 基于检索增强生成的知识库问答
+def rag_qa(query, collection_name, host=MILVUS_HOST, port=MILVUS_PORT, top_k=3):
+    try:
+        # 检查连接
+        connected, msg = check_milvus_connection(host, port)
+        if not connected:
+            return f"错误: {msg}"
+            
+        # 检索相关文档
+        docs_with_scores = query_documents(query, collection_name, host, port, top_k)
+        
+        if not docs_with_scores:
+            return "未找到匹配的文档，无法生成回答。请尝试修改您的查询或确保已索引相关内容。"
+            
+        # 文档去重和过滤
+        unique_docs = {}
+        filtered_docs = []
+        for doc, score in docs_with_scores:
+            # 使用文档内容的前100个字符作为去重键
+            doc_key = doc.page_content[:100]
+            # 仅保留未见过的文档
+            if doc_key not in unique_docs:
+                # 相似度过滤（可选）：只保留相似度较高的文档
+                similarity = max(0, min(100, 100 * (1 - score / 100)))
+                if similarity > 60:  # 只保留相似度高于60%的文档
+                    unique_docs[doc_key] = (doc, score)
+                    filtered_docs.append((doc, score))
+        
+        # 如果过滤后没有文档，使用原始文档集
+        if not filtered_docs:
+            filtered_docs = docs_with_scores[:1]  # 至少保留最相关的一个
+            
+        # 构建提示词
+        context_texts = []
+        for i, (doc, score) in enumerate(filtered_docs):
+            # 计算相似度用于在上下文中显示
+            similarity = max(0, min(100, 100 * (1 - score / 100)))
+            # 加入相似度信息帮助模型判断内容可靠性
+            context_texts.append(f"文档 {i+1} (相似度: {similarity:.2f}%):\n{doc.page_content}")
+        
+        context = "\n\n".join(context_texts)
+        
+        # 改进提示词模板，更明确地指导模型
+        prompt = f"""请作为一个专业的文档问答助手，基于以下参考文档回答用户的问题。
+        如果参考文档中包含问题的答案，请详细解释。
+        如果参考文档中没有与问题直接相关的信息，请明确回答"根据提供的文档无法回答这个问题"。
+        
+        请仔细分析每个参考文档的内容和相关性，重点关注相似度较高的文档。
+        不要编造信息，如果不确定，请说明。
+        
+        用户问题: {query}
+        
+        参考文档:
+        {context}
+        
+        基于上述文档的专业回答:"""
+        
+        # 添加调试信息
+        print(f"提问: {query}")
+        print(f"检索到 {len(filtered_docs)} 个去重后的相关文档")
+        
+        # 调用大语言模型生成回答
+        answer = query_llm(prompt)
+        
+        # 构建结果显示
+        result = f"### 问题: {query}\n\n"
+        result += f"### 回答:\n{answer}\n\n"
+        result += "### 参考文档:\n"
+        
+        for i, (doc, score) in enumerate(filtered_docs):
+            # 计算相似度百分比
+            similarity = max(0, min(100, 100 * (1 - score / 100)))
+            metadata = doc.metadata if hasattr(doc, "metadata") else {}
+            source = metadata.get("source", "未知来源")
+            
+            result += f"#### 文档 {i+1} (相似度: {similarity:.2f}%)\n"
+            result += f"**来源**: {source}\n"
+            result += f"**内容**: {doc.page_content[:200]}...\n\n"
+        
+        return result
+    except Exception as e:
+        import traceback
+        trace = traceback.format_exc()
+        return f"知识库问答出错: {str(e)}\n\n调试信息:\n{trace}"
 
 # 检查Milvus连接状态
 def check_milvus_connection(host, port):
@@ -81,7 +253,7 @@ def split_documents(documents, chunk_size=1000, chunk_overlap=150):
     chunks = text_splitter.split_documents(documents)
     return chunks
 
-# 将文档块存入Milvus
+# 将文档块存入Milvus - 使用正确的Milvus类
 def store_in_milvus(chunks, collection_name, host=MILVUS_HOST, port=MILVUS_PORT):
     vectorstore = Milvus.from_documents(
         documents=chunks,
@@ -91,7 +263,7 @@ def store_in_milvus(chunks, collection_name, host=MILVUS_HOST, port=MILVUS_PORT)
     )
     return vectorstore
 
-# 根据问题查询相关文档
+# 根据问题查询相关文档 - 使用正确的Milvus类
 def query_documents(query_text, collection_name, host=MILVUS_HOST, port=MILVUS_PORT, top_k=3):
     vectorstore = Milvus(
         embedding_function=embeddings,
@@ -176,7 +348,7 @@ def create_empty_collection(collection_name, host=MILVUS_HOST, port=MILVUS_PORT)
             return f"集合 '{collection_name}' 已存在"
         
         # 定义集合结构
-        dim = 384  # 对应于默认嵌入模型的维度
+        dim = EMBEDDING_DIMENSION  # 使用当前加载的模型维度
         fields = [
             FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535),
@@ -229,10 +401,14 @@ def create_ui():
             # 添加Milvus部署指南
             gr.Markdown(MILVUS_DEPLOYMENT_GUIDE)
             
-            # 添加Milvus Web界面链接
+            # 显示当前使用的嵌入模型
             gr.Markdown(f"""
+            ## 系统状态
+            当前使用的嵌入模型: **{actual_model_name}**  
+            嵌入维度: **{EMBEDDING_DIMENSION}**
+            
             ## Milvus Web界面
-            访问Milvus管理界面: [http://{MILVUS_HOST}:{MILVUS_PORT}/#/collections](http://{MILVUS_HOST}:{MILVUS_PORT}/#/collections)
+            访问Milvus管理界面: [http://{MILVUS_HOST}:8000](http://{MILVUS_HOST}:8000)
             
             在Web界面中您可以:
             - 查看和管理所有集合
@@ -309,6 +485,37 @@ def create_ui():
                 fn=process_query,
                 inputs=[query_input, query_collection_name, milvus_host, milvus_port, top_k_slider],
                 outputs=query_output
+            )
+        
+        with gr.Tab("知识库问答"):
+            gr.Markdown("## 基于文档的AI问答")
+            qa_collection_name = gr.Textbox(label="集合名称", value="default_collection")
+            qa_query_input = gr.Textbox(label="您的问题", placeholder="请输入您的问题...")
+            qa_top_k_slider = gr.Slider(minimum=1, maximum=10, step=1, value=3, label="参考文档数量")
+            qa_button = gr.Button("提问")
+            qa_output = gr.Markdown(label="AI回答")
+            
+            # 添加知识库问答说明
+            gr.Markdown("""
+            ### 知识库问答说明
+            
+            本功能结合了向量检索和大语言模型能力:
+            1. 系统首先检索与您问题最相关的文档
+            2. 将这些文档作为上下文提供给AI模型
+            3. AI模型基于检索到的文档生成回答
+            
+            此功能依赖于:
+            - 大语言模型: Qwen2.5 14B
+            - 向量嵌入模型: BGE-M3
+            - Milvus向量数据库
+            
+            为获得最佳效果，请确保您已经上传并索引了相关文档。
+            """)
+            
+            qa_button.click(
+                fn=rag_qa,
+                inputs=[qa_query_input, qa_collection_name, milvus_host, milvus_port, qa_top_k_slider],
+                outputs=qa_output
             )
     
     return demo

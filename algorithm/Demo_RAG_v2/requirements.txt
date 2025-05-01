@@ -1,0 +1,11 @@
+# RAG 系统依赖库
+langchain-community>=0.0.16
+langchain-text-splitters>=0.0.1
+langchain-huggingface>=0.0.2
+langchain-milvus>=0.0.1
+gradio>=4.0.0
+pymilvus>=2.3.0
+requests>=2.31.0
+sentence-transformers>=2.2.2
+docx2txt>=0.8
+PyPDF2>=3.0.0
