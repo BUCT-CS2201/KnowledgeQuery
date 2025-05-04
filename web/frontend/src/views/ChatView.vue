@@ -73,15 +73,6 @@
             size="small"
             style="margin-left: 16px;"
           />
-          
-          <el-switch
-            v-model="enableStreamOutput"
-            active-text="流式输出"
-            inactive-text="一次性输出"
-            size="small"
-            style="margin-left: 16px;"
-            v-if="selectedModel === 'deepseek'"
-          />
         </div>
 
         <!-- 聊天消息区域 -->
@@ -251,7 +242,6 @@ export default {
     const upload = ref(null)
     const selectedModel = ref('general')
     const enableWebSearch = ref(false)
-    const enableStreamOutput = ref(true)
     
     const user = computed(() => authStore.getUser)
     const sessions = computed(() => chatStore.getSessions)
@@ -337,17 +327,11 @@ export default {
         content: content.trim(),
         model: selectedModel.value,
         web_search: enableWebSearch.value,
-        stream: enableStreamOutput.value && selectedModel.value === 'deepseek',
         files: selectedFiles.value.length > 0 ? selectedFiles.value.map(f => ({
           name: f.name,
           size: f.size,
           type: f.type
         })) : undefined
-      }
-      
-      // 显示等待提示
-      if (messageData.stream && messageData.model === 'deepseek') {
-        console.log('使用流式输出模式，正在等待响应...')
       }
       
       // 发送消息和文件
@@ -362,23 +346,6 @@ export default {
         // 强制视图更新
         await nextTick()
         scrollToBottom()
-        
-        // 如果启用了流式输出，每200ms检查一次更新并滚动到底部
-        if (messageData.stream && messageData.model === 'deepseek') {
-          const checkInterval = setInterval(() => {
-            if (!chatStore.loading) {
-              clearInterval(checkInterval)
-              scrollToBottom()
-              return
-            }
-            scrollToBottom()
-          }, 200)
-          
-          // 最多等待30秒
-          setTimeout(() => {
-            clearInterval(checkInterval)
-          }, 30000)
-        }
       } catch (error) {
         console.error('发送消息失败:', error)
       }
@@ -452,7 +419,6 @@ export default {
       upload,
       selectedModel,
       enableWebSearch,
-      enableStreamOutput,
       createNewChat,
       selectSession,
       deleteSession,

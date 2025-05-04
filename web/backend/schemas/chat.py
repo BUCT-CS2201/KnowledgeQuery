@@ -24,29 +24,6 @@ class ChatMessageCreate(BaseModel):
     model: Optional[str] = "general"
     web_search: Optional[bool] = False
     files: Optional[List[FileInfo]] = None
-    stream: Optional[bool] = False  # 是否使用流式响应
-
-# 流式响应的Delta模型
-class StreamDelta(BaseModel):
-    content: Optional[str] = None
-    
-# 流式响应的Choice模型
-class StreamChoice(BaseModel):
-    delta: StreamDelta
-    finish_reason: Optional[str] = None
-    index: int = 0
-
-# 流式响应模型
-class StreamResponse(BaseModel):
-    id: str
-    choices: List[StreamChoice]
-    created: int
-    model: str
-    object: str = "chat.completion.chunk"
-    
-    def dict(self):
-        """兼容旧版Pydantic的dict方法"""
-        return self.model_dump()
 
 # 上传的文件数据
 class UploadFile(BaseModel):
