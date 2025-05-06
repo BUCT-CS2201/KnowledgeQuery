@@ -42,7 +42,7 @@ def register_user(db: Session, phone_number: str, password: str, id_number: str,
         "name": new_user.name,
         "phone_number": new_user.phone_number,
         "role_type": new_user.role_type,
-        "status": new_user.status
+        "status": new_user.account_status
     }
     return user_dict
 
@@ -59,7 +59,7 @@ def login_user(db: Session, phone_number: str, password: str):
         )
     
     # 检查用户状态
-    if user.status == 0:
+    if user.account_status == 0:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="账户已被禁用"

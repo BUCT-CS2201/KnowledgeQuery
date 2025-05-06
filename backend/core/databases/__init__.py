@@ -28,7 +28,7 @@ class User(Base):
     address = Column(String(255), nullable=True, comment="地址")
     wechat = Column(String(50), nullable=True, comment="微信号")
     qq = Column(String(50), nullable=True, comment="qq号")
-    status = Column(SmallInteger, nullable=False, default=1, comment="用户状态, 0:禁用,1:启用")
+    account_status = Column(SmallInteger, nullable=False, default=1, comment="用户状态, 0:禁用,1:启用")
     role_type = Column(SmallInteger, nullable=False, default=0, comment="用户角色, 0:用户,1:管理员")
     create_time = Column(TIMESTAMP, nullable=True, server_default=text("CURRENT_TIMESTAMP"), comment="创建时间")
     update_time = Column(TIMESTAMP, nullable=True, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"), comment="更新时间")
