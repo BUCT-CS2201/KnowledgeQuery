@@ -1,0 +1,1 @@
+ZHIPU_API_KEY = '你的智谱 api key'
