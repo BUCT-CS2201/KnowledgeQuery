@@ -706,7 +706,7 @@ export default {
 }
 
 .feature-item .el-icon {
-  font-size: 24px;
+  fontsize: 24px;
   color: #0a84ff;
 }
 

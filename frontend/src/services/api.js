@@ -4,7 +4,7 @@ const API_BASE_URL = 'http://localhost:9988/v1/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -20,6 +20,34 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// 添加响应拦截器，处理401错误
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // 检查是否为401未授权错误
+    if (error.response && error.response.status === 401) {
+      // 清除失效的token和用户信息
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      // 获取当前页面URL，排除登录和注册页面（避免无限重定向）
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/register') {
+        // 提示用户
+        // 使用setTimeout避免在重定向前无法看到提示
+        setTimeout(() => {
+          alert('您的登录已过期，请重新登录');
+          // 跳转到登录页面
+          window.location.href = '/login';
+        }, 100);
+      }
+    }
     return Promise.reject(error);
   }
 );
@@ -42,12 +70,58 @@ export const accountApi = {
   }
 };
 
-// 问答相关API
+// 聊天相关API
 export const chatApi = {
-  // 发送问题
+  // 发送问题（旧方法，保留兼容性）
   sendQuestion: (question) => {
     return api.post('/chat/', { question });
-  }
+  },
+  
+  // 创建新聊天会话
+  createSession: (title = "新对话") => {
+    return api.post('/chat/sessions', { title });
+  },
+  
+  // 获取用户的所有聊天会话
+  getSessions: () => {
+    return api.get('/chat/sessions');
+  },
+  
+  // 获取单个聊天会话及其消息
+  getSession: (sessionId) => {
+    return api.get(`/chat/sessions/${sessionId}`);
+  },
+
+  // 发送消息并获取AI回复
+  sendMessage: (sessionId, content) => {
+    return api.post(`/chat/sessions/${sessionId}/messages`, { content });
+  },
+  
+  // 发送消息并获取AI流式回复
+  sendStreamMessage: (sessionId, content) => {
+    const token = localStorage.getItem('token');
+    return {
+      url: `${API_BASE_URL}/chat/sessions/${sessionId}/stream`,
+      options: {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({ content }),
+      }
+    };
+  },
+    
+  // 删除聊天会话
+  deleteSession: (sessionId) => {
+    return api.delete(`/chat/sessions/${sessionId}`);
+  },
+  
+  // 更新聊天会话标题
+  updateSession: (sessionId, title) => {
+    return api.put(`/chat/sessions/${sessionId}`, { title });
+  },
 };
 
 export default api;

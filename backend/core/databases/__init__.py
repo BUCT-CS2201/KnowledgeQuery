@@ -2,6 +2,8 @@ from sqlalchemy import create_engine, Column, Integer, String, SmallInteger, TIM
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from config.config_info import settings
+from sqlalchemy import Boolean, Text, ForeignKey
+from sqlalchemy.orm import relationship
 
 # 创建数据库连接引擎
 DATABASE_URL = f"mysql+pymysql://{settings.MYSQL_USER}:{settings.MYSQL_PASSWORD}@{settings.MYSQL_IP}:{settings.MYSQL_PORT}/{settings.MYSQL_BASE}"
@@ -32,6 +34,33 @@ class User(Base):
     role_type = Column(SmallInteger, nullable=False, default=0, comment="用户角色, 0:用户,1:管理员")
     create_time = Column(TIMESTAMP, nullable=True, server_default=text("CURRENT_TIMESTAMP"), comment="创建时间")
     update_time = Column(TIMESTAMP, nullable=True, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"), comment="更新时间")
+
+# 定义聊天会话表模型
+class ChatSession(Base):
+    __tablename__ = "chat_sessions"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(100), default="新对话")
+    user_id = Column(Integer, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
+    updated_at = Column(TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+    
+    # 定义与ChatMessage的关系
+    messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
+
+# 定义聊天消息表模型
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(Integer, ForeignKey("chat_sessions.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    is_user = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
+    
+    # 定义与ChatSession的关系
+    session = relationship("ChatSession", back_populates="messages")
 
 # 获取数据库会话
 def get_db():
