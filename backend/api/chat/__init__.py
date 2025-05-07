@@ -20,6 +20,7 @@ router = APIRouter()
 # 定义请求/响应模型
 class ChatSessionCreate(BaseModel):
     title: str = "新对话"
+    type: int = 1  # 默认为普通问答
 
 class ChatSessionUpdate(BaseModel):
     title: str
@@ -36,6 +37,7 @@ class MessageResponse(BaseModel):
 class ChatSessionResponse(BaseModel):
     id: int
     title: str
+    type: int
     created_at: str
     updated_at: str
 
@@ -47,13 +49,14 @@ async def create_session(
     db: Session = Depends(get_db)
 ):
     try:
-        session = create_chat_session(db, current_user.user_id, request.title)
+        session = create_chat_session(db, current_user.user_id, request.title, request.type)
         return {
             "code": 200,
             "message": "创建成功",
             "data": {
                 "id": session.id,
                 "title": session.title,
+                "type": session.type,
                 "created_at": session.created_at,
                 "updated_at": session.updated_at
             }
@@ -86,6 +89,7 @@ async def get_sessions(
                 {
                     "id": session.id,
                     "title": session.title,
+                    "type": session.type,
                     "created_at": session.created_at,
                     "updated_at": session.updated_at
                 } for session in sessions
@@ -123,6 +127,7 @@ async def get_session(
                 "session": {
                     "id": session.id,
                     "title": session.title,
+                    "type": session.type,
                     "created_at": session.created_at,
                     "updated_at": session.updated_at
                 },

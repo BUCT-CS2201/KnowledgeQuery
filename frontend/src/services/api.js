@@ -78,8 +78,8 @@ export const chatApi = {
   },
   
   // 创建新聊天会话
-  createSession: (title = "新对话") => {
-    return api.post('/chat/sessions', { title });
+  createSession: (title = "新对话", type = 1) => {
+    return api.post('/chat/sessions', { title, type });
   },
   
   // 获取用户的所有聊天会话
@@ -111,6 +111,19 @@ export const chatApi = {
         body: JSON.stringify({ content }),
       }
     };
+  },
+  
+  // 根据会话类型创建会话的简便方法
+  createNormalSession: (title = "新对话") => {
+    return api.post('/chat/sessions', { title, type: 1 });
+  },
+  
+  createKnowledgeBaseSession: (title = "新知识库问答") => {
+    return api.post('/chat/sessions', { title, type: 2 });
+  },
+  
+  createKnowledgeGraphSession: (title = "新知识图谱问答") => {
+    return api.post('/chat/sessions', { title, type: 3 });
   },
     
   // 删除聊天会话

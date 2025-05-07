@@ -42,6 +42,7 @@ class ChatSession(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(100), default="新对话")
     user_id = Column(Integer, nullable=False)
+    type = Column(SmallInteger, default=1, comment="会话类型：1(普通问答)、2(知识库问答)、3(知识图谱问答)")
     is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
     updated_at = Column(TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))

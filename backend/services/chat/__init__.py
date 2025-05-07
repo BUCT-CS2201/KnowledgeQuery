@@ -9,11 +9,12 @@ import json
 logger = logging.getLogger(__name__)
 
 # 创建聊天会话
-def create_chat_session(db: Session, user_id: int, title: str = "新对话"):
+def create_chat_session(db: Session, user_id: int, title: str = "新对话", session_type: int = 1):
     try:
         new_session = ChatSession(
             user_id=user_id,
-            title=title
+            title=title,
+            type=session_type
         )
         db.add(new_session)
         db.commit()
@@ -250,11 +251,27 @@ async def send_streaming_message(db: Session, session_id: int, user_id: int, con
         # 收集完整的AI回复
         full_response = ""
         
-        # 获取AI流式回复
+        # 根据会话类型选择不同的处理方式
         try:
-            async for chunk in ai_llm.get_streaming_response(messages_for_api):
-                full_response += chunk
-                yield chunk
+            if session.type == 1:  # 普通问答
+                async for chunk in ai_llm.get_streaming_response(messages_for_api):
+                    full_response += chunk
+                    yield chunk
+            elif session.type == 2:  # 知识库问答
+                # 这里调用知识库问答的模型
+                async for chunk in ai_llm.get_kb_streaming_response(messages_for_api):
+                    full_response += chunk
+                    yield chunk
+            elif session.type == 3:  # 知识图谱问答
+                # 这里调用知识图谱问答的模型
+                async for chunk in ai_llm.get_kg_streaming_response(messages_for_api):
+                    full_response += chunk
+                    yield chunk
+            else:
+                # 默认使用普通问答
+                async for chunk in ai_llm.get_streaming_response(messages_for_api):
+                    full_response += chunk
+                    yield chunk
         except Exception as e:
             logger.error(f"获取AI流式回复失败: {str(e)}")
             error_msg = "抱歉，获取回答时出现错误，请稍后再试。"
@@ -265,10 +282,11 @@ async def send_streaming_message(db: Session, session_id: int, user_id: int, con
         ai_message.content = full_response
         
         # 更新会话标题（如果是第一条消息且标题是默认的）
-        if session.title == "新对话" and len(messages_for_api) <= 2:
-            # 使用用户的第一条消息的前20个字符作为标题
-            new_title = content[:20] + ("..." if len(content) > 20 else "")
-            session.title = new_title
+        if session.title == "新对话" or session.title == "新知识库问答" or session.title == "新知识图谱问答":
+            if len(messages_for_api) <= 2:
+                # 使用用户的第一条消息的前20个字符作为标题
+                new_title = content[:20] + ("..." if len(content) > 20 else "")
+                session.title = new_title
         
         # 更新会话
         db.commit()
