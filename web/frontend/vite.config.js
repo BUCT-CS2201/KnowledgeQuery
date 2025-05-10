@@ -18,5 +18,7 @@ export default defineConfig({
         changeOrigin: true
       }
     }
-  }
+  },
+  base: process.env.NODE_ENV === 'production' ? '/KnowledgeQuery/' : '/',
+
 }) 
