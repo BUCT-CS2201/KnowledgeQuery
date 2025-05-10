@@ -5,6 +5,10 @@ on:
     branches:
       - release_web
 
+# 添加权限配置
+permissions:
+  contents: write
+
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
