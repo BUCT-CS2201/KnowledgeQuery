@@ -1,29 +1,28 @@
-# frontend
+## 前端部署
+进入前端目录
+```bash
+cd frontend
+```
 
-This template should help get you started developing with Vue 3 in Vite.
-
-## Recommended IDE Setup
-
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
+安装依赖
+```bash
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+如果安装依赖报错
+1. 检查node版本：
+```bash
+node --version
+v22.12.0
 
-```sh
-npm run dev
+```
+2. 检查npm源
+```bash
+npm config set registry https://registry.npmmirror.com/
+npm install
 ```
 
-### Compile and Minify for Production
-
-```sh
-npm run build
+开发模式运行
+```bash
+npm run dev
 ```

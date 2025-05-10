@@ -37,14 +37,14 @@ MYSQL_USER=root  # 或您创建的用户
 MYSQL_PASSWORD=your_password
 ```
 
-运行后端服务
-```bash
-python main.py
-```
-
 开发测试建议运行
 ```bash
 uvicorn main:app --reload --port 9988
+```
+
+运行后端服务
+```bash
+python main.py
 ```
 
 ## 前端部署
@@ -55,6 +55,19 @@ cd frontend
 
 安装依赖
 ```bash
+npm install
+```
+
+如果安装依赖报错
+1. 检查node版本：
+```bash
+node --version
+v22.12.0
+```
+
+2. 检查npm源
+```bash
+npm config set registry https://registry.npmmirror.com/
 npm install
 ```
 
