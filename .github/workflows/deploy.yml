@@ -26,7 +26,8 @@ jobs:
           npm config set fetch-retry-mintimeout 20000
           npm config set fetch-retry-maxtimeout 120000
           npm config set fetch-retries 5
-          npm install   --registry=https://mirrors.huaweicloud.com/repository/npm/
+          rm -rf package-lock.json node_modules
+          npm install   --registry=https://registry.npmjs.org
         working-directory: frontend
 
       - name: Build project
