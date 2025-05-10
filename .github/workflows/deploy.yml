@@ -1,0 +1,32 @@
+name: Deploy Vue App to GitHub Pages
+
+on:
+  push:
+    branches:
+      - release_web
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18' # 可根据项目需求调整 Node.js 版本
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: web/frontend
+
+      - name: Build project
+        run: npm run build
+        working-directory: web/frontend
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: web/frontend/dist
