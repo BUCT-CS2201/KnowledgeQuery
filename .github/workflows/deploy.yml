@@ -28,11 +28,18 @@ jobs:
           npm config set fetch-retries 5
           npm install   --registry=https://registry.npmjs.org
         working-directory: frontend
+        
+      - name: Setup environment variables
+        run: |
+          # 创建或修改 .env 文件，设置生产环境的 API URL
+          echo "VITE_APP_BASE_URL=${{ secrets.API_BASE_URL || 'http://127.0.0.1/v1/api' }}" > .env
+          # 仍然设置基础路径
+          echo "VITE_BASE_URL=/KnowledgeQuery/" >> .env
+          cat .env
+        working-directory: frontend
 
       - name: Build project
         run: |
-          # 设置正确的基础路径环境变量
-          export VITE_BASE_URL="/KnowledgeQuery/"
           npm run build
         working-directory: frontend
 
