@@ -25,7 +25,11 @@ jobs:
         run: npm cache clean --force
 
       - name: Install dependencies
-        run: npm install --registry https://registry.npmmirror.com/
+        run: |
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          npm config set fetch-retries 5
+          npm install
         working-directory: frontend
 
       - name: Build project
