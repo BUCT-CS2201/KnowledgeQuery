@@ -30,7 +30,10 @@ jobs:
         working-directory: frontend
 
       - name: Build project
-        run: npm run build
+        run: |
+          # 设置正确的基础路径环境变量
+          export VITE_BASE_URL="/KnowledgeQuery/"
+          npm run build
         working-directory: frontend
 
       - name: Deploy to GitHub Pages
