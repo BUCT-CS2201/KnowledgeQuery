@@ -22,7 +22,7 @@ jobs:
           node-version: '22' # 可根据项目需求调整 Node.js 版本
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --registry https://registry.npmmirror.com/
         working-directory: frontend
 
       - name: Build project
