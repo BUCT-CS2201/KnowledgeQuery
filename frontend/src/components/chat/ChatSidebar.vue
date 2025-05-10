@@ -309,7 +309,8 @@ const handleLogout = () => {
 
 .sidebar-content {
   flex: 1;
-  overflow-y: auto;
+  /* 移除内容区域的滚动条 */
+  overflow-y: hidden;
 }
 
 /* 主菜单样式 */
@@ -390,6 +391,7 @@ const handleLogout = () => {
 /* 子菜单样式 */
 .submenu {
   margin-top: 4px;
+  /* 仅保留历史会话列表的滚动条 */
   max-height: calc(100vh - 350px);
   overflow-y: auto;
 }
@@ -536,6 +538,25 @@ const handleLogout = () => {
 /* 会话类型Emoji样式 */
 .session-type-emoji {
   font-size: 16px;
+}
+
+/* 自定义滚动条样式 */
+.submenu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.submenu::-webkit-scrollbar-track {
+  background: #f9f9f9;
+  border-radius: 3px;
+}
+
+.submenu::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 3px;
+}
+
+.submenu::-webkit-scrollbar-thumb:hover {
+  background: #d0d0d0;
 }
 
 /* El-dropdown样式覆盖 */
