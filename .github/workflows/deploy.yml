@@ -21,15 +21,12 @@ jobs:
         with:
           node-version: '22' # 可根据项目需求调整 Node.js 版本
 
-      - name: Clean npm cache
-        run: npm cache clean --force
-
       - name: Install dependencies
         run: |
           npm config set fetch-retry-mintimeout 20000
           npm config set fetch-retry-maxtimeout 120000
           npm config set fetch-retries 5
-          npm install
+          npm install   --registry=https://mirrors.huaweicloud.com/repository/npm/
         working-directory: frontend
 
       - name: Build project
