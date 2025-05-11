@@ -1,6 +1,11 @@
 import logging
 from openai import OpenAI
 from config.config_info import settings
+from typing import List, Dict, Any, AsyncGenerator
+from .rag.cypher_generator import CypherGenerator
+from .rag.knowledge_graph import KnowledgeGraph
+from .rag.prompts import ANSWER_GENERATION_SYSTEM_PROMPT, FORMAT_RESULTS_PROMPT
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +94,7 @@ class AiHubMixLLM:
                     
                     # 尝试导入LangChain相关库
                     try:
-                        from langchain_community.embeddings import HuggingFaceEmbeddings
+                        from langchain_huggingface import HuggingFaceEmbeddings
                         from langchain_milvus import Milvus
                     except ImportError:
                         installation_guide = """缺少必要的依赖包。请执行以下命令安装:
@@ -221,5 +226,89 @@ class AiHubMixLLM:
             except Exception as e:
                 logger.error(f"知识库流式响应失败: {str(e)}")
                 yield "抱歉，在查询知识库时遇到问题。请稍后再试。"
+
+    async def get_kg_streaming_response(self, messages: List[Dict[str, str]]) -> AsyncGenerator[str, None]:
+        """
+        基于知识图谱的问答响应生成器
+        
+        Args:
+            messages: 对话历史消息列表
+            
+        Yields:
+            str: 生成的回答片段
+        """
+        try:
+            # 验证消息格式
+            if not messages or not isinstance(messages, list):
+                yield "消息格式错误，请提供有效的对话历史。"
+                return
+                
+            # 获取最后一个用户问题
+            last_message = None
+            for msg in reversed(messages):
+                if msg.get("role") == "user" and msg.get("content"):
+                    last_message = msg["content"]
+                    break
+                    
+            if not last_message:
+                yield "未找到有效的用户问题，请重新提问。"
+                return
+            
+            # 初始化Cypher生成器
+            cypher_generator = CypherGenerator(self)
+            
+            try:
+                # 生成Cypher查询
+                cypher_query = await cypher_generator.generate_cypher(last_message)
+                logger.info(f"生成的Cypher查询语句: {cypher_query}")
+                
+                if not cypher_query:
+                    yield "无法生成有效的查询语句，请重新提问。"
+                    return
+                    
+                # 初始化知识图谱连接
+                kg = KnowledgeGraph()
+                
+                try:
+                    # 执行查询
+                    results = await kg.execute_query(cypher_query)
+                    logger.info(f"查询结果: {results}")
+                    
+                    # 格式化查询结果
+                    formatted_results = await kg.format_results(results)
+                    logger.info(f"格式化后的结果: {formatted_results}")
+                    
+                    # 构建完整的消息列表
+                    enhanced_messages = [
+                        {"role": "system", "content": ANSWER_GENERATION_SYSTEM_PROMPT},
+                        {"role": "user", "content": f"""问题：{last_message}
+
+知识图谱查询结果：
+{formatted_results}
+
+请基于以上信息回答用户的问题。"""}
+                    ]
+                    
+                    # 使用流式响应生成回答
+                    async for chunk in self.get_streaming_response(enhanced_messages):
+                        yield chunk
+                        
+                except Exception as e:
+                    logger.error(f"知识图谱查询失败: {str(e)}")
+                    yield f"查询知识图谱时出错: {str(e)}"
+                    
+                finally:
+                    # 关闭知识图谱连接
+                    await kg.close()
+                    
+            except Exception as e:
+                logger.error(f"生成Cypher查询失败: {str(e)}")
+                yield f"生成查询语句时出错: {str(e)}"
+                
+        except Exception as e:
+            logger.error(f"知识图谱问答处理失败: {str(e)}")
+            yield "处理您的问题时遇到错误，请稍后重试。"
+
 # 创建一个单例实例
+
 ai_llm = AiHubMixLLM()
