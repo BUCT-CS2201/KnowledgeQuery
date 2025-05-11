@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from core.databases import get_db
-from services.account import register_user, login_user
+from core.databases import get_db, User
+from services.account import register_user, login_user, hash_password
 from pydantic import BaseModel
 from core.auth.jwt import get_current_user, TokenData
 from fastapi.security import OAuth2PasswordRequestForm
@@ -16,6 +16,16 @@ class UserRegisterRequest(BaseModel):
 class UserLoginRequest(BaseModel):
     phone_number: str
     password: str
+
+# 新增请求模型
+class CheckUserRequest(BaseModel):
+    phone_number: str
+    id_number: str
+
+# 新增请求模型
+class ResetPasswordRequest(BaseModel):
+    phone_number: str
+    new_password: str
 
 router = APIRouter()
 
@@ -93,6 +103,48 @@ async def read_users_me(current_user: TokenData = Depends(get_current_user), db:
             "role_type": current_user.role_type
         }
     }
+
+# 新增接口
+@router.post("/check_user", summary="检查用户是否存在")
+async def check_user(request: CheckUserRequest, db: Session = Depends(get_db)):
+    try:
+        user = db.query(User).filter(User.phone_number == request.phone_number, User.id_number == request.id_number).first()
+        return {
+            "code": 200,
+            "message": "查询成功",
+            "data": {"exist": user is not None}
+        }
+    except Exception as e:
+        return {
+            "code": 500,
+            "message": f"查询失败: {str(e)}",
+            "data": None
+        }
+
+# 新增接口
+@router.post("/reset_password", summary="重置密码")
+async def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    try:
+        user = db.query(User).filter(User.phone_number == request.phone_number).first()
+        if not user:
+            return {
+                "code": 404,
+                "message": "用户不存在",
+                "data": None
+            }
+        user.password = hash_password(request.new_password)
+        db.commit()
+        return {
+            "code": 200,
+            "message": "密码重置成功",
+            "data": None
+        }
+    except Exception as e:
+        return {
+            "code": 500,
+            "message": f"密码重置失败: {str(e)}",
+            "data": None
+        }
 
 # @router.get("/")
 # async def read_root():
