@@ -7,26 +7,26 @@
       <!-- 主导航菜单 -->
       <div class="main-menu">
         <!-- 新建会话按钮 -->
-        <div class="chat-button" @click="createNewSession(1)">
-          <span class="icon">💬</span>
+        <div class="chat-button chat-button-1" @click="createNewSession(1)">
+          <span class="icon">🧩</span>
           <span class="text">新建会话</span>
         </div>
         
         <!-- 新建知识库问答按钮 -->
-        <div class="chat-button" @click="createNewSession(2)">
-          <span class="icon">📚</span>
+        <div class="chat-button chat-button-2" @click="createNewSession(2)">
+          <span class="icon">📂</span>
           <span class="text">新建知识库问答</span>
         </div>
         
         <!-- 新建知识图谱问答按钮 -->
-        <div class="chat-button" @click="createNewSession(3)">
-          <span class="icon">🔍</span>
+        <div class="chat-button chat-button-3" @click="createNewSession(3)">
+          <span class="icon">🌐</span>
           <span class="text">新建知识图谱问答</span>
         </div>
         
         <!-- 历史会话部分 -->
         <div class="menu-item history-title">
-          <span class="menu-icon">📚</span>
+          <span class="menu-icon">🗂️</span>
           <span class="menu-text">历史会话</span>
         </div>
         
@@ -116,10 +116,10 @@ import {
 
 // 会话类型对应的Emoji
 const SESSION_TYPE_EMOJIS = {
-  1: '💬', // 普通问答
-  2: '📚', // 知识库问答
-  3: '🔍', // 知识图谱问答
-  'default': '💬' // 默认Emoji
+  1: '🧩', // 普通问答
+  2: '📂', // 知识库问答
+  3: '🌐', // 知识图谱问答
+  'default': '🧩' // 默认Emoji
 }
 
 // 会话类型对应的默认标题
@@ -303,7 +303,7 @@ const handleLogout = () => {
 
 .sidebar-header h1 {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px; /* 从16px增加到18px */
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -325,46 +325,48 @@ const handleLogout = () => {
 .chat-button {
   display: inline-flex;
   align-items: center;
-  padding: 8px 14px;
-  margin-bottom: 8px;
-  border: 1px solid #e0e0e0;
+  padding: 10px 16px; /* 从8px 14px增加到10px 16px */
+  margin-bottom: 10px; /* 从8px增加到10px */
+  border: none; /* 移除边框 */
   border-radius: 10px; /* pill shape */
-  background-color: #f9f9f9;
   color: #1f1f1f;
-  font-size: 14px;
+  font-size: 15px; /* 从14px增加到15px */
   font-family: sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
-  gap: 8px;
+  gap: 10px; /* 从8px增加到10px */
   width: 100%;
 }
 
+/* 三种不同颜色的按钮背景 */
+.chat-button-1 {
+  background-color: rgb(70, 158, 180);
+  color: white; /* 按钮文字改为白色，更易读 */
+}
+
+.chat-button-2 {
+  background-color: rgb(135, 207, 164);
+  color: #333333; /* 浅色背景配深色文字 */
+}
+
+.chat-button-3 {
+  background-color: rgb(254, 232, 154);
+  color: #333333; /* 浅色背景配深色文字 */
+}
+
 .chat-button:hover {
-  background-color: #f0f0f0;
   transform: translateY(-1px);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.chat-button .icon {
-  font-size: 16px;
-}
-
-.chat-button .shortcut {
-  margin-left: auto;
-  padding: 2px 6px;
-  background-color: #f0f0f0;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #555;
+  filter: brightness(1.05);
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  padding: 12px 14px;
+  padding: 14px 16px; /* 从12px 14px增加到14px 16px */
   cursor: pointer;
   transition: all 0.3s;
-  font-size: 14px;
+  font-size: 15px; /* 从14px增加到15px */
   color: #333333;
   border-left: 3px solid transparent;
 }
@@ -375,7 +377,7 @@ const handleLogout = () => {
 }
 
 .menu-icon {
-  font-size: 18px;
+  font-size: 20px; /* 从18px增加到20px */
   margin-right: 12px;
 }
 
@@ -386,9 +388,9 @@ const handleLogout = () => {
 .history-title {
   font-weight: 500;
   color: #212121;
-  margin-top: 16px;
+  margin-top: 18px; /* 从16px增加到18px */
   border-top: 1px solid #eeeeee;
-  padding-top: 16px;
+  padding-top: 18px; /* 从16px增加到18px */
 }
 
 /* 子菜单样式 */
@@ -402,10 +404,10 @@ const handleLogout = () => {
 .submenu-item {
   display: flex;
   align-items: center;
-  padding: 10px 14px 10px 24px;
+  padding: 12px 16px 12px 26px; /* 从10px 14px 10px 24px增加 */
   cursor: pointer;
   transition: background-color 0.3s;
-  font-size: 13px;
+  font-size: 14px; /* 从13px增加到14px */
   color: #424242;
   border-left: 2px solid transparent;
   margin-bottom: 2px;
@@ -431,7 +433,7 @@ const handleLogout = () => {
   display: flex;
   align-items: center;
   cursor: pointer;
-  padding: 8px;
+  padding: 10px; /* 从8px增加到10px */
   border-radius: 8px;
   transition: all 0.3s;
 }
@@ -441,11 +443,11 @@ const handleLogout = () => {
 }
 
 .user-emoji {
-  font-size: 18px;
+  font-size: 20px; /* 从18px增加到20px */
   background-color: #f0f0f0;
   border-radius: 50%;
-  height: 36px;
-  width: 36px;
+  height: 40px; /* 从36px增加到40px */
+  width: 40px; /* 从36px增加到40px */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -457,14 +459,14 @@ const handleLogout = () => {
 }
 
 .username {
-  font-size: 14px;
+  font-size: 15px; /* 从14px增加到15px */
   line-height: 1.2;
   color: #212121;
   font-weight: 500;
 }
 
 .user-status {
-  font-size: 12px;
+  font-size: 13px; /* 从12px增加到13px */
   color: #616161;
   display: flex;
   align-items: center;
@@ -496,10 +498,11 @@ const handleLogout = () => {
 .user-menu-item {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 14px 18px; /* 从12px 16px增加到14px 18px */
   cursor: pointer;
   transition: background-color 0.3s;
   color: #212121;
+  font-size: 15px; /* 添加字体大小 */
 }
 
 .user-menu-item:hover {
@@ -540,22 +543,22 @@ const handleLogout = () => {
 
 /* 会话类型Emoji样式 */
 .session-type-emoji {
-  font-size: 16px;
+  font-size: 18px; /* 从16px增加到18px */
 }
 
 /* 自定义滚动条样式 */
 .submenu::-webkit-scrollbar {
-  width: 6px;
+  width: 8px; /* 从6px增加到8px */
 }
 
 .submenu::-webkit-scrollbar-track {
   background: #f9f9f9;
-  border-radius: 3px;
+  border-radius: 4px; /* 从3px增加到4px */
 }
 
 .submenu::-webkit-scrollbar-thumb {
   background: #e0e0e0;
-  border-radius: 3px;
+  border-radius: 4px; /* 从3px增加到4px */
 }
 
 .submenu::-webkit-scrollbar-thumb:hover {
