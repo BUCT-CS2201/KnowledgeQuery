@@ -1,6 +1,6 @@
 # 👾 KnowledgeQuery—知识问答子系统
 
-## ⭐️ 项目介绍
+## 项目介绍
 
 ### 技术方案
 
@@ -14,14 +14,16 @@
 - [x] 📂  知识库问答
 - [x] 🌐 知识图谱问答
 
-## ⭐️ 后端启动
+## 后端启动
 
-进入后端目录
++ **STEP 1 进入后端目录**
+
 ```bash
 cd backend
 ```
 
-创建虚拟环境
++ **STEP 2 创建虚拟环境**
+
 ```bash
 python3 -m venv venv
 # Linux/Mac
@@ -30,13 +32,15 @@ source venv/bin/activate
 venv\Scripts\activate
 ```
 
-安装依赖
++ **STEP 3 安装依赖**
+
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-配置.env文件
++ **STEP 4 配置.env文件**
+
 ```bash
 cp .env_copy .env
 vim .env
@@ -75,19 +79,22 @@ NEO4J_CONNECTION_TIMEOUT=
 
 ```
 
-开发测试建议运行
++ **STEP 5 开发测试建议运行**
+
 ```bash
 uvicorn main:app --reload --port 9988
 ```
 
 
-## ⭐️ 前端部署
-进入前端目录
+## 前端部署
++ **STEP 1 进入前端目录**
+
 ```bash
 cd frontend
 ```
 
-安装依赖
++ **STEP 2 安装依赖**
+
 ```bash
 npm install
 ```
@@ -105,7 +112,34 @@ npm config set registry https://registry.npmmirror.com/
 npm install
 ```
 
-开发模式运行
+3. 清理缓存和重新安装（适用于常见安装问题）：
+
+   Windows PowerShell:
+   ```powershell
+   Remove-Item -Recurse -Force node_modules
+   Remove-Item package-lock.json
+   npm cache clean --force
+   npm install
+   ```
+
+   Windows 命令行:
+   ```cmd
+   rd /s /q node_modules
+   del package-lock.json
+   npm cache clean --force
+   npm install
+   ```
+
+   Linux/Mac:
+   ```bash
+   rm -rf node_modules
+   rm package-lock.json
+   npm cache clean --force
+   npm install
+   ```
+
++ **STEP 3 开发模式运行**
+
 ```bash
 npm run dev
 ```
