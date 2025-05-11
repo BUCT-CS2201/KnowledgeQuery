@@ -22,6 +22,28 @@ const routes = [
     name: 'Chat',
     component: () => import('../views/Chat.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/user-agreement',
+    name: 'UserAgreement',
+    component: () => import('../views/UserAgreement.vue')
+  },
+  {
+    path: '/privacy-policy',
+    name: 'PrivacyPolicy',
+    component: () => import('../views/PrivacyPolicy.vue')
+  },
+  {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: () => import('../views/ForgotPassword.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('../views/ResetPassword.vue'),
+    meta: { requiresAuth: false }
   }
 ];
 

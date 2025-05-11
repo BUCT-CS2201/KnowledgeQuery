@@ -266,7 +266,10 @@ const handleLogout = () => {
   ElMessageBox.confirm('确定要退出登录吗？', '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
-    type: 'warning'
+    type: 'warning',
+    customClass: 'custom-message-box',
+    confirmButtonClass: 'custom-confirm-button',
+    cancelButtonClass: 'custom-cancel-button'
   }).then(() => {
     emit('logout')
   }).catch(() => {})
@@ -618,5 +621,42 @@ const handleLogout = () => {
 
 .sidebar-collapsed .chat-button .icon {
   margin-right: 0;
+}
+
+.custom-message-box {
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.10);
+  background-color: rgba(255, 255, 255, 0.92);
+  font-family: 'SimSun', '宋体', serif;
+}
+.custom-confirm-button {
+  border-radius: 50px;
+  background: #111;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  transition: 0.3s;
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.10);
+}
+.custom-confirm-button:hover {
+  background: #444;
+  color: #fff;
+}
+.custom-cancel-button {
+  border-radius: 50px;
+  background: #e0e0e0;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  transition: 0.3s;
+  color: #222;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.10);
+}
+.custom-cancel-button:hover {
+  background: #ccc;
+  color: #000;
 }
 </style>
