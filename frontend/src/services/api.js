@@ -70,7 +70,17 @@ export const accountApi = {
   // 获取当前用户信息
   getCurrentUser: () => {
     return api.get('/account/me');
-  }
+  },
+  
+  // 检查用户是否存在（找回密码用）
+  checkUserExist: (data) => {
+    return api.post('/account/check_user', data)
+  },
+  
+  // 重置密码
+  resetPassword: (data) => {
+    return api.post('/account/reset_password', data)
+  },
 };
 
 // 聊天相关API

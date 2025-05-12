@@ -364,17 +364,17 @@ watch(() => chatMessages.length, () => {
 }
 
 .welcome-header h2 {
-  font-size: 32px;
+  font-size: 36px; /* 从32px增加到36px */
   font-weight: 600;
-  margin-bottom: 16px;
+  margin-bottom: 18px; /* 增加一些间距 */
   background: linear-gradient(135deg, #333333 0%, #666666 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  letter-spacing: -0.5px; /* 字母间距减小 - 苹果风格 */
+  letter-spacing: -0.5px;
 }
 
 .welcome-header p {
-  font-size: 17px; /* 增大字号 - 苹果风格 */
+  font-size: 19px; /* 从17px增加到19px */
   color: #555555;
   font-weight: 400;
   letter-spacing: -0.2px;
@@ -401,19 +401,19 @@ watch(() => chatMessages.length, () => {
 .suggestion-card {
   display: inline-flex;
   align-items: center;
-  padding: 8px 16px;
+  padding: 10px 20px; /* 从8px 16px增加到10px 20px */
   border: 1px solid #eaeaea;
   border-radius: 9999px;
-  font-size: 14px;
+  font-size: 16px; /* 从14px增加到16px */
   color: #333333;
   background-color: #fafafa;
-  gap: 8px;
+  gap: 10px; /* 从8px增加到10px */
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none; /* 防止文本选择 */
   box-shadow: 0 1px 2px rgba(0,0,0,0.03); /* 极轻微阴影 - 苹果风格 */
-  min-width: 220px; /* 增加最小宽度 */
-  max-width: 320px; /* 增加最大宽度 */
+  min-width: 240px; /* 从220px增加到240px */
+  max-width: 350px; /* 从320px增加到350px */
   white-space: nowrap; /* 防止文本换行 */
   overflow: hidden; /* 隐藏溢出部分 */
   text-overflow: ellipsis; /* 显示省略号 */
@@ -436,7 +436,7 @@ watch(() => chatMessages.length, () => {
 }
 
 .card-icon {
-  font-size: 16px;
+  font-size: 18px; /* 从16px增加到18px */
 }
 
 .center-search {
@@ -453,8 +453,8 @@ watch(() => chatMessages.length, () => {
 }
 
 .welcome-input :deep(.el-textarea__inner) {
-  font-size: 16px;
-  padding: 16px;
+  font-size: 18px; /* 从16px增加到18px */
+  padding: 18px; /* 从16px增加到18px */
   border-radius: 14px; /* 更大的圆角 - 苹果风格 */
   border: 1px solid #e0e0e0;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
@@ -470,9 +470,9 @@ watch(() => chatMessages.length, () => {
 }
 
 .welcome-button {
-  font-size: 16px;
-  height: 46px;
-  padding: 0 32px;
+  font-size: 18px; /* 从16px增加到18px */
+  height: 50px; /* 从46px增加到50px */
+  padding: 0 36px; /* 从0 32px增加到0 36px */
   border-radius: 9999px; /* 更圆的按钮 - 苹果风格 */
   background: #333333;
   border: none;
@@ -536,7 +536,7 @@ watch(() => chatMessages.length, () => {
 }
 
 .message-emoji {
-  font-size: 24px;
+  font-size: 28px; /* 从24px增加到28px */
   display: flex;
   align-items: flex-start;
   padding-top: 2px;
@@ -544,7 +544,7 @@ watch(() => chatMessages.length, () => {
 }
 
 .user-message-emoji {
-  font-size: 24px;
+  font-size: 28px; /* 从24px增加到28px */
   display: flex;
   align-items: flex-start;
   padding-top: 2px;
@@ -584,8 +584,9 @@ watch(() => chatMessages.length, () => {
 
 .message-text {
   word-break: break-word;
-  line-height: 1.5;
+  line-height: 1.6; /* 从1.5增加到1.6 */
   letter-spacing: -0.2px; /* 苹果风格字间距 */
+  font-size: 16px; /* 添加字体大小 */
 }
 
 /* 输入区域样式 */
@@ -597,18 +598,13 @@ watch(() => chatMessages.length, () => {
 
 .chat-input-area :deep(.el-textarea__inner) {
   border-radius: 12px;
-  padding: 14px;
+  padding: 16px; /* 从14px增加到16px */
   border: 1px solid #e0e0e0;
   transition: all 0.3s ease;
   background-color: #ffffff;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  font-size: 15px;
+  font-size: 17px; /* 从15px增加到17px */
   letter-spacing: -0.2px;
-}
-
-.chat-input-area :deep(.el-textarea__inner:focus) {
-  border-color: #555555;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
 }
 
 .input-actions {
@@ -619,18 +615,12 @@ watch(() => chatMessages.length, () => {
 
 .input-actions .el-button {
   border-radius: 9999px; /* 圆形按钮 - 苹果风格 */
-  padding: 10px 24px;
+  padding: 12px 28px; /* 从10px 24px增加到12px 28px */
   background-color: #333333;
   border-color: #333333;
   font-weight: 500;
   letter-spacing: -0.2px;
-}
-
-.input-actions .el-button:hover {
-  background-color: #444444;
-  border-color: #444444;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  font-size: 16px; /* 添加字体大小 */
 }
 
 /* Markdown样式 */
@@ -639,6 +629,7 @@ watch(() => chatMessages.length, () => {
   line-height: 1.6;
   color: #333333;
   letter-spacing: -0.2px;
+  font-size: 16px; /* 添加基本字体大小 */
 }
 
 /* 保留其余样式，增加苹果风格的字体和细节 */
