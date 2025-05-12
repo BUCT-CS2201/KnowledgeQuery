@@ -1,4 +1,4 @@
-name: Deploy Vue App to GitHub Pages
+name: Deploy Vue App to Remote Server
 
 on:
   push:
@@ -26,15 +26,15 @@ jobs:
           npm config set fetch-retry-mintimeout 20000
           npm config set fetch-retry-maxtimeout 120000
           npm config set fetch-retries 5
-          npm install   --registry=https://registry.npmjs.org
+          npm install --registry=https://registry.npmjs.org
         working-directory: frontend
         
       - name: Setup environment variables
         run: |
           # 创建或修改 .env 文件，设置生产环境的 API URL
           echo "VITE_APP_BASE_URL=${{ secrets.API_BASE_URL || 'http://127.0.0.1/v1/api' }}" > .env
-          # 仍然设置基础路径
-          echo "VITE_BASE_URL=/KnowledgeQuery/" >> .env
+          # 根据需要调整基础路径
+          echo "VITE_BASE_URL=/" >> .env
           cat .env
         working-directory: frontend
 
@@ -43,8 +43,27 @@ jobs:
           npm run build
         working-directory: frontend
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Deploy to Remote Server
+        uses: appleboy/scp-action@master
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: frontend/dist
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          source: "frontend/dist/"
+          target: ${{ secrets.REMOTE_DIR }}
+          strip_components: 2
+
+      - name: Execute remote commands
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            # 可选：在服务器上执行的命令，如重启 Nginx 等
+            cd ${{ secrets.REMOTE_DIR }}
+            echo "部署完成于 $(date)"
+            # 如果您使用 Nginx，可能需要重新加载它
+            sudo systemctl reload nginx

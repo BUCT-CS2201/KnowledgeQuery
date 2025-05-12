@@ -15,5 +15,5 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
-  base: '/KnowledgeQuery/' // 添加这一行，使用仓库名称作为基础路径
+  base: '/' // 添加这一行，使用仓库名称作为基础路径
 })
