@@ -1,21 +1,31 @@
 import logging
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 from config.config_info import settings
 from typing import List, Dict, Any, AsyncGenerator
 from .rag.cypher_generator import CypherGenerator
 from .rag.knowledge_graph import KnowledgeGraph
 from .rag.prompts import ANSWER_GENERATION_SYSTEM_PROMPT, FORMAT_RESULTS_PROMPT
 import json
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
 class AiHubMixLLM:
     def __init__(self):
+        # 初始化同步客户端
         self.client = OpenAI(
             api_key=settings.AIHUBMIX_API_KEY,
             base_url=settings.AIHUBMIX_BASE_URL,
         )
+        # 初始化异步客户端
+        self.async_client = AsyncOpenAI(
+            api_key=settings.AIHUBMIX_API_KEY,
+            base_url=settings.AIHUBMIX_BASE_URL,
+        )
         self.model = settings.AIHUBMIX_MODEL
+        # 线程池，用于执行可能阻塞的操作
+        self._executor = ThreadPoolExecutor(max_workers=10)
     
     async def get_response(self, messages):
         """
@@ -24,7 +34,8 @@ class AiHubMixLLM:
         :return: AI的回复文本
         """
         try:
-            completion = self.client.chat.completions.create(
+            # 使用异步客户端发送请求
+            completion = await self.async_client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 stream=False
@@ -43,7 +54,8 @@ class AiHubMixLLM:
         :yield: 生成AI回复的每个部分
         """
         try:
-            completion = self.client.chat.completions.create(
+            # 使用异步客户端创建流式请求
+            stream = await self.async_client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 stream=True,
@@ -51,18 +63,26 @@ class AiHubMixLLM:
             )
             
             full_response = ""
-            # 处理流式响应
-            for chunk in completion:
+            
+            # 使用异步迭代器处理流式响应
+            async for chunk in stream:
                 if hasattr(chunk.choices, '__len__') and len(chunk.choices) > 0:
                     if hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content is not None:
                         content = chunk.choices[0].delta.content
                         full_response += content
+                        # 通过yield将每个块发送给客户端而不阻塞
                         yield content
+                
+                # 添加一个小延迟，允许其他任务执行
+                await asyncio.sleep(0.01)
             
             # 如果流式响应完全失败，返回错误信息
             if not full_response:
                 yield "抱歉，我暂时无法回答您的问题。请稍后再试。"
                 
+        except asyncio.TimeoutError:
+            logger.error("调用AiHubMix API流式响应超时")
+            yield "抱歉，响应超时。请尝试简化您的问题或稍后再试。"
         except Exception as e:
             logger.error(f"调用AiHubMix API流式响应失败: {str(e)}")
             yield "抱歉，我暂时无法回答您的问题。请稍后再试。"
@@ -117,23 +137,37 @@ class AiHubMixLLM:
                     if collection_name is None:
                         collection_name = settings.MILVUS_COLLECTION
                     
-                    # 尝试连接Milvus
+                    # 尝试连接Milvus - 使用线程池避免阻塞
                     try:
-                        connections.connect(
-                            host=host, 
-                            port=port,
-                            db_name=db_name,
-                            timeout=5
+                        # 将可能阻塞的操作移到线程池中执行
+                        def connect_milvus():
+                            connections.connect(
+                                host=host, 
+                                port=port,
+                                db_name=db_name,
+                                timeout=5
+                            )
+                        
+                        # 异步执行连接操作
+                        await asyncio.get_event_loop().run_in_executor(
+                            self._executor, connect_milvus
                         )
                     except Exception as e:
                         logger.error(f"连接Milvus失败: {str(e)}")
                         yield f"无法连接到Milvus向量数据库，请确保服务已启动。详细错误: {str(e)}"
                         return
                     
-                    # 尝试初始化嵌入模型
+                    # 初始化嵌入模型 - 使用线程池避免阻塞
                     try:
-                        model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-                        embeddings = HuggingFaceEmbeddings(model_name=model_name)
+                        # 将模型加载操作移到线程池中执行
+                        def init_embeddings():
+                            model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+                            return HuggingFaceEmbeddings(model_name=model_name)
+                        
+                        # 异步执行模型加载
+                        embeddings = await asyncio.get_event_loop().run_in_executor(
+                            self._executor, init_embeddings
+                        )
                     except Exception as e:
                         logger.error(f"加载嵌入模型失败: {str(e)}")
                         yield "嵌入模型加载失败，可能需要安装sentence-transformers或检查网络连接。"
@@ -146,8 +180,14 @@ class AiHubMixLLM:
                         connection_args={"host": host, "port": port, "db_name": db_name},
                     )
                     
-                    # 查询相关文档
-                    docs_with_scores = vectorstore.similarity_search_with_score(query, k=top_k)
+                    # 查询相关文档 - 使用线程池避免阻塞
+                    def perform_search():
+                        return vectorstore.similarity_search_with_score(query, k=top_k)
+                    
+                    # 异步执行向量搜索
+                    docs_with_scores = await asyncio.get_event_loop().run_in_executor(
+                        self._executor, perform_search
+                    )
                     
                     if not docs_with_scores:
                         # 如果没有找到相关文档，直接调用普通流式响应
@@ -197,8 +237,8 @@ class AiHubMixLLM:
                     # 将system prompt放在最前面
                     enhanced_messages.insert(0, {"role": "system", "content": system_prompt})
                     
-                    # 调用流式API
-                    completion = self.client.chat.completions.create(
+                    # 使用异步客户端创建流式请求
+                    stream = await self.async_client.chat.completions.create(
                         model=self.model,
                         messages=enhanced_messages,
                         stream=True,
@@ -206,13 +246,17 @@ class AiHubMixLLM:
                     )
                     
                     full_response = ""
-                    # 处理流式响应
-                    for chunk in completion:
+                    # 使用异步迭代器处理流式响应
+                    async for chunk in stream:
                         if hasattr(chunk.choices, '__len__') and len(chunk.choices) > 0:
                             if hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content is not None:
                                 content = chunk.choices[0].delta.content
                                 full_response += content
+                                # 通过yield将每个块发送给客户端而不阻塞
                                 yield content
+                        
+                        # 添加一个小延迟，允许其他任务执行
+                        await asyncio.sleep(0.01)
                     
                     # 如果流式响应完全失败，返回错误信息
                     if not full_response:
@@ -258,7 +302,7 @@ class AiHubMixLLM:
             cypher_generator = CypherGenerator(self)
             
             try:
-                # 生成Cypher查询
+                # 生成Cypher查询 - 异步执行
                 cypher_query = await cypher_generator.generate_cypher(last_message)
                 logger.info(f"生成的Cypher查询语句: {cypher_query}")
                 
@@ -270,9 +314,12 @@ class AiHubMixLLM:
                 kg = KnowledgeGraph()
                 
                 try:
-                    # 执行查询
+                    # 执行查询 - 可能是阻塞操作，但KnowledgeGraph类已经使用异步实现
                     results = await kg.execute_query(cypher_query)
                     logger.info(f"查询结果: {results}")
+                    
+                    # 允许其他请求处理
+                    await asyncio.sleep(0.01)
                     
                     # 格式化查询结果
                     formatted_results = await kg.format_results(results)
@@ -289,9 +336,24 @@ class AiHubMixLLM:
 请基于以上信息回答用户的问题。"""}
                     ]
                     
-                    # 使用流式响应生成回答
-                    async for chunk in self.get_streaming_response(enhanced_messages):
-                        yield chunk
+                    # 使用流式响应生成回答 - 采用改进的流式响应方法
+                    stream = await self.async_client.chat.completions.create(
+                        model=self.model,
+                        messages=enhanced_messages,
+                        stream=True,
+                        timeout=120
+                    )
+                    
+                    # 使用异步迭代器处理流式响应
+                    async for chunk in stream:
+                        if hasattr(chunk.choices, '__len__') and len(chunk.choices) > 0:
+                            if hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content is not None:
+                                content = chunk.choices[0].delta.content
+                                # 通过yield将每个块发送给客户端而不阻塞
+                                yield content
+                                
+                                # 添加一个小延迟，允许其他任务执行
+                                await asyncio.sleep(0.01)
                         
                 except Exception as e:
                     logger.error(f"知识图谱查询失败: {str(e)}")
@@ -310,5 +372,4 @@ class AiHubMixLLM:
             yield "处理您的问题时遇到错误，请稍后重试。"
 
 # 创建一个单例实例
-
 ai_llm = AiHubMixLLM()
