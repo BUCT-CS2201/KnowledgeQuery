@@ -46,7 +46,7 @@
               type="textarea"
               :rows="3"
               resize="none"
-              @keyup.enter.ctrl.prevent="sendMessage"
+              @keydown.enter.prevent="handleEnterKeyPress"
               ref="centerInputRef"
               class="welcome-input"
             />
@@ -73,7 +73,12 @@
           <template v-if="message.type !== 'user'">
             <div class="message-emoji">🤖</div>
             <div class="message-content ai-content">
-              <div class="message-text markdown-body" v-html="renderMarkdown(message.content)"></div>
+              <div v-if="loading && index === chatMessages.length - 1 && message.content === ''" class="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <div v-else class="message-text markdown-body" v-html="renderMarkdown(message.content)"></div>
             </div>
           </template>
           
@@ -86,10 +91,6 @@
           </template>
         </div>
       </div>
-
-      <div v-if="loading" class="loading-indicator">
-        <el-skeleton :rows="2" animated />
-      </div>
     </div>
 
     <!-- 输入区域 - 只在有消息时显示 -->
@@ -101,7 +102,7 @@
         type="textarea"
         :rows="2"
         resize="none"
-        @keyup.enter.ctrl.prevent="sendMessage"
+        @keydown.enter.prevent="handleEnterKeyPress"
         ref="inputRef"
       />
       <div class="input-actions">
@@ -189,6 +190,17 @@ const scrollToBottom = () => {
   if (chatContentRef.value) {
     chatContentRef.value.scrollTop = chatContentRef.value.scrollHeight
   }
+}
+
+// 处理回车键
+const handleEnterKeyPress = (e) => {
+  // 如果按下了Shift键+回车，允许换行
+  if (e.shiftKey) {
+    return;
+  }
+  
+  // 否则发送消息
+  sendMessage();
 }
 
 // 发送消息（流式响应版本）
@@ -584,9 +596,25 @@ watch(() => chatMessages.length, () => {
 
 .message-text {
   word-break: break-word;
+  font-size: 16px; /* 从14px增加到16px */
   line-height: 1.6; /* 从1.5增加到1.6 */
   letter-spacing: -0.2px; /* 苹果风格字间距 */
   font-size: 16px; /* 添加字体大小 */
+}
+
+/* Skeleton动画样式 */
+:deep(.el-skeleton) {
+  width: 100%;
+}
+
+:deep(.el-skeleton__item) {
+  background: linear-gradient(90deg, #f2f2f2 25%, #e6e6e6 37%, #f2f2f2 63%);
+  background-size: 400% 100%;
+}
+
+:deep(.el-skeleton.is-animated .el-skeleton__item) {
+  animation-duration: 1.8s;
+  animation-timing-function: ease;
 }
 
 /* 输入区域样式 */
@@ -670,5 +698,45 @@ watch(() => chatMessages.length, () => {
 :deep(.el-button--primary.is-disabled) {
   background-color: #a0a0a0;
   border-color: #a0a0a0;
+}
+
+/* 三点加载指示器 */
+.typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #999;
+  display: inline-block;
+  opacity: 0.4;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation: typingAnimation 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation: typingAnimation 1.4s infinite ease-in-out 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation: typingAnimation 1.4s infinite ease-in-out 0.4s;
+}
+
+@keyframes typingAnimation {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
 }
 </style>
