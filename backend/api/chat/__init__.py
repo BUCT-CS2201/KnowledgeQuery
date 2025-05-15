@@ -5,6 +5,8 @@ from core.databases import get_db
 from core.auth.jwt import get_current_user, TokenData
 from pydantic import BaseModel
 from typing import List, Optional
+import time  # 添加time模块导入
+import asyncio  # 添加asyncio模块导入
 from services.chat import (
     create_chat_session, 
     get_user_chat_sessions, 
@@ -27,6 +29,7 @@ class ChatSessionUpdate(BaseModel):
 
 class MessageCreate(BaseModel):
     content: str
+    model: Optional[str] = None  # 添加可选的模型参数
 
 class MessageResponse(BaseModel):
     id: int
@@ -269,17 +272,29 @@ async def create_stream_message(
     try:
         # 保存用户消息并获取流式响应
         async def event_generator():
-            async for chunk in send_streaming_message(db, session_id, current_user.user_id, request.content):
+            # 发送开始标记，帮助前端识别响应开始
+            yield f"data: [START]\n\n"
+            
+            # 传递模型参数，生成流式响应
+            async for chunk in send_streaming_message(
+                db, session_id, current_user.user_id, request.content, model=request.model
+            ):
                 if chunk:
                     yield f"data: {chunk}\n\n"
+            
+            # 发送结束标记，帮助前端识别响应结束
+            yield f"data: [DONE]\n\n"
         
+        # 设置正确的响应头，确保浏览器不缓存流
         return StreamingResponse(
             event_generator(), 
             media_type="text/event-stream",
             headers={
-                'Cache-Control': 'no-cache',
+                'Cache-Control': 'no-cache, no-transform, must-revalidate',
                 'Connection': 'keep-alive',
                 'Content-Type': 'text/event-stream',
+                'X-Accel-Buffering': 'no',  # 禁用Nginx的缓冲
+                'Transfer-Encoding': 'chunked'
             }
         )
     except HTTPException as e:

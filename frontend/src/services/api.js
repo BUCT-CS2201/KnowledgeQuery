@@ -111,7 +111,7 @@ export const chatApi = {
   },
   
   // 发送消息并获取AI流式回复
-  sendStreamMessage: (sessionId, content) => {
+  sendStreamMessage: (sessionId, content, model = '') => {
     const token = localStorage.getItem('token');
     return {
       url: `${API_BASE_URL}/chat/sessions/${sessionId}/stream`,
@@ -120,8 +120,14 @@ export const chatApi = {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': token ? `Bearer ${token}` : '',
+          'Cache-Control': 'no-cache',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'text/event-stream'
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, model }),
+        // 确保使用正确的模式处理流
+        cache: 'no-store',
+        credentials: 'same-origin'
       }
     };
   },

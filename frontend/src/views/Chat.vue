@@ -14,11 +14,11 @@
       @logout="handleLogout"
     />
 
-    <!-- 侧边栏伸缩按钮 -->
-    <div class="sidebar-toggle" @click="toggleSidebar" 
-         :style="{ left: sidebarCollapsed ? '64px' : '300px' }">
-      <el-icon v-if="sidebarCollapsed"><ArrowRight /></el-icon>
-      <el-icon v-else><ArrowLeft /></el-icon>
+    <!-- 添加恢复侧边栏按钮 -->
+    <div v-if="sidebarCollapsed" class="restore-sidebar-btn" @click="restoreSidebar">
+      <el-icon :size="18">
+        <Expand />
+      </el-icon>
     </div>
 
     <!-- 主对话组件 -->
@@ -40,7 +40,8 @@ import { useRouter } from 'vue-router'
 import { chatApi } from '../services/api'
 import ChatSidebar from '../components/chat/ChatSidebar.vue'
 import ChatMain from '../components/chat/ChatMain.vue'
-import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
+// 导入 Expand 图标
+import { Expand } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const chatMainRef = ref(null)
@@ -58,6 +59,11 @@ const currentSessionType = computed(() => {
 // 切换侧边栏的展开/折叠状态
 const toggleSidebar = () => {
   sidebarCollapsed.value = !sidebarCollapsed.value
+}
+
+// 添加恢复侧边栏的方法
+const restoreSidebar = () => {
+  sidebarCollapsed.value = false
 }
 
 // 处理会话切换
@@ -199,21 +205,37 @@ onMounted(async () => {
   background-color: #f5f7fa;
 }
 
-/* 侧边栏切换按钮 */
-.sidebar-toggle {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: #fff;
-  border-radius: 0 4px 4px 0;
-  width: 20px;
-  height: 50px;
+/* 恢复侧边栏按钮样式 */
+.restore-sidebar-btn {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #212121;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 2px 0 8px rgba(0,0,0,0.15);
-  z-index: 99;
-  transition: left 0.3s;
+  z-index: 1001; /* 确保按钮在最上层 */
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.restore-sidebar-btn:hover {
+  background-color: #424242;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 768px) {
+  .restore-sidebar-btn {
+    top: 15px;
+    left: 15px;
+    width: 36px;
+    height: 36px;
+  }
 }
 </style>
