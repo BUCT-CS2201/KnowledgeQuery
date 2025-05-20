@@ -5,6 +5,7 @@ from core.llm import ai_llm
 from typing import List, Optional
 import logging
 import json
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +200,7 @@ async def send_message(db: Session, session_id: int, user_id: int, content: str)
         )
 
 # 发送聊天消息并获取AI流式回复
-async def send_streaming_message(db: Session, session_id: int, user_id: int, content: str):
+async def send_streaming_message(db: Session, session_id: int, user_id: int, content: str, model: str = None):
     try:
         # 检查会话是否存在且属于当前用户
         session = db.query(ChatSession).filter(
@@ -251,27 +252,40 @@ async def send_streaming_message(db: Session, session_id: int, user_id: int, con
         # 收集完整的AI回复
         full_response = ""
         
-        # 根据会话类型选择不同的处理方式
+        # 使用任务接管响应生成过程
+        response_task = None
+        
+        # 根据会话类型和选择的模型选择不同的处理方式
         try:
             if session.type == 1:  # 普通问答
-                async for chunk in ai_llm.get_streaming_response(messages_for_api):
-                    full_response += chunk
-                    yield chunk
+                # 创建一个生成器对象，但不立即开始迭代
+                response_gen = ai_llm.get_streaming_response(messages_for_api, model=model)
             elif session.type == 2:  # 知识库问答
-                # 这里调用知识库问答的模型
-                async for chunk in ai_llm.get_kb_streaming_response(messages_for_api):
-                    full_response += chunk
-                    yield chunk
+                # 创建知识库问答的生成器
+                response_gen = ai_llm.get_kb_streaming_response(messages_for_api, model=model)
             elif session.type == 3:  # 知识图谱问答
-                # 这里调用知识图谱问答的模型
-                async for chunk in ai_llm.get_kg_streaming_response(messages_for_api):
-                    full_response += chunk
-                    yield chunk
+                # 创建知识图谱问答的生成器
+                response_gen = ai_llm.get_kg_streaming_response(messages_for_api, model=model)
             else:
                 # 默认使用普通问答
-                async for chunk in ai_llm.get_streaming_response(messages_for_api):
-                    full_response += chunk
-                    yield chunk
+                response_gen = ai_llm.get_streaming_response(messages_for_api, model=model)
+                
+            # 迭代生成器，处理每个响应块
+            async for chunk in response_gen:
+                full_response += chunk
+                yield chunk
+                
+                # 每500个字符更新一次数据库，减少数据库操作次数
+                if len(full_response) % 500 == 0:  # 从100改为500
+                    ai_message.content = full_response
+                    try:
+                        db.commit()
+                    except Exception as e:
+                        logger.warning(f"更新中间AI消息内容失败: {str(e)}")
+                
+                # 减少等待时间，提高响应速度
+                await asyncio.sleep(0.001)  # 从0.01减少到0.001
+                
         except Exception as e:
             logger.error(f"获取AI流式回复失败: {str(e)}")
             error_msg = "抱歉，获取回答时出现错误，请稍后再试。"
@@ -279,17 +293,27 @@ async def send_streaming_message(db: Session, session_id: int, user_id: int, con
             yield error_msg
         
         # 更新AI消息内容
-        ai_message.content = full_response
-        
-        # 更新会话标题（如果是第一条消息且标题是默认的）
-        if session.title == "新对话" or session.title == "新知识库问答" or session.title == "新知识图谱问答":
-            if len(messages_for_api) <= 2:
-                # 使用用户的第一条消息的前20个字符作为标题
-                new_title = content[:20] + ("..." if len(content) > 20 else "")
-                session.title = new_title
-        
-        # 更新会话
-        db.commit()
+        try:
+            ai_message.content = full_response
+            
+            # 更新会话标题（如果是第一条消息且标题是默认的）
+            if session.title == "新对话" or session.title == "新知识库问答" or session.title == "新知识图谱问答":
+                if len(messages_for_api) <= 2:
+                    # 使用用户的第一条消息的前20个字符作为标题
+                    new_title = content[:20] + ("..." if len(content) > 20 else "")
+                    session.title = new_title
+            
+            # 更新会话
+            db.commit()
+        except Exception as e:
+            logger.error(f"更新AI消息内容失败: {str(e)}")
+            # 尝试再次提交，防止数据库会话状态异常
+            try:
+                db.rollback()
+                ai_message.content = full_response
+                db.commit()
+            except Exception as inner_e:
+                logger.error(f"重试更新AI消息内容失败: {str(inner_e)}")
         
     except Exception as e:
         logger.error(f"流式消息处理失败: {str(e)}")

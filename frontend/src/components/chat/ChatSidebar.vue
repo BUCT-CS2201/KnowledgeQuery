@@ -2,6 +2,12 @@
   <div class="sidebar" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
     <div class="sidebar-header">
       <h1>✨ 知识问答系统</h1>
+      <div class="sidebar-toggle" @click="toggleSidebar">
+        <el-icon :size="18">
+          <Fold v-if="!sidebarCollapsed" />
+          <Expand v-else />
+        </el-icon>
+      </div>
     </div>
     <div class="sidebar-content">
       <!-- 主导航菜单 -->
@@ -111,7 +117,9 @@ import {
   Delete,
   Plus,
   MoreFilled,
-  SwitchButton
+  SwitchButton,
+  Fold,  // 添加折叠图标
+  Expand  // 添加展开图标
 } from '@element-plus/icons-vue'
 
 // 会话类型对应的Emoji
@@ -261,6 +269,11 @@ const toggleUserMenu = (event) => {
   }
 }
 
+// 切换侧边栏显示/隐藏
+const toggleSidebar = () => {
+  emit('update:sidebarCollapsed', !props.sidebarCollapsed)
+}
+
 // 退出登录
 const handleLogout = () => {
   ElMessageBox.confirm('确定要退出登录吗？', '提示', {
@@ -278,24 +291,31 @@ const handleLogout = () => {
 
 <style scoped>
 .sidebar {
-  width: 300px;
+  width: 350px;
   display: flex;
   flex-direction: column;
   background-color: #ffffff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  transition: width 0.3s;
+  transition: all 0.3s;
   z-index: 100;
   height: 100vh;
   border-right: 1px solid #eeeeee;
+  position: relative;
 }
 
 .sidebar-collapsed {
-  width: 64px;
+  width: 0;
+  padding: 0;
+  overflow: hidden;
+  border-right: none;
+  transform: translateX(-100%);
 }
 
 .sidebar-header {
   padding: 16px;
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   border-bottom: 1px solid #eeeeee;
   background-color: #212121;
   color: #ffffff;
@@ -303,11 +323,28 @@ const handleLogout = () => {
 
 .sidebar-header h1 {
   margin: 0;
-  font-size: 18px; /* 从16px增加到18px */
+  font-size: 18px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: all 0.3s;
+  color: #ffffff;
+}
+
+.sidebar-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .sidebar-content {
@@ -661,5 +698,52 @@ const handleLogout = () => {
 .custom-cancel-button:hover {
   background: #ccc;
   color: #000;
+}
+
+/* 响应式设计 - 媒体查询 */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1000;
+    width: 280px;
+  }
+  
+  .sidebar-collapsed {
+    width: 0;
+    transform: translateX(-100%);
+    border-right: none;
+  }
+  
+  .sidebar-collapsed .sidebar-content,
+  .sidebar-collapsed .sidebar-footer,
+  .sidebar-collapsed .sidebar-header h1 {
+    opacity: 0;
+  }
+  
+  .sidebar-collapsed .sidebar-toggle {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-button {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+  
+  .sidebar-header h1 {
+    font-size: 16px;
+  }
+  
+  .menu-item, .submenu-item {
+    padding: 10px 12px;
+  }
+  
+  .user-panel {
+    padding: 8px;
+  }
 }
 </style>

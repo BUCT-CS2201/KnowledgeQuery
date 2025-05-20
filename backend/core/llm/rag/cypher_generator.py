@@ -22,43 +22,74 @@ class CypherGenerator:
         # 添加一些示例查询来帮助模型理解
         examples = """
 示例查询：
-1. 查找所有文物基本信息：
-MATCH (r:CulturalRelic) RETURN r.name, r.description, r.dynasty, r.size, r.type LIMIT 5
+1. 某博物馆的文物查询：
+MATCH (r:CulturalRelic)-[:所在博物馆]->(m:Museum)
+WHERE toLower(m.museum_name) CONTAINS toLower('大英博物馆')
+   OR toLower(m.museum_name) CONTAINS toLower('British Museum')
+   OR toLower(m.museum_name) CONTAINS toLower('大英')
+RETURN r.name as relic_name, r.description as description, r.dynasty as dynasty,
+       r.type as type, r.size as size, r.material_name as material, m.museum_name as museum_name
 
-2. 查找特定朝代的文物：
-MATCH (r:CulturalRelic) WHERE r.dynasty CONTAINS '清' RETURN r.name, r.description, r.dynasty LIMIT 5
+2. 某文物的基本信息：
+MATCH (r:CulturalRelic) WHERE r.name = '镂空模纹壶' 
+RETURN r.name, r.description, r.dynasty, r.type, r.size, r.material_name, r.author
 
-3. 查找特定材质的文物：
-MATCH (r:CulturalRelic) WHERE r.description CONTAINS '纸本' RETURN r.name, r.description, r.type LIMIT 5
+3. 某文物的朝代/年代：
+MATCH (r:CulturalRelic) WHERE r.name = '镂空模纹壶' 
+RETURN r.name, r.dynasty
 
-4. 查找特定类型的文物：
-MATCH (r:CulturalRelic) WHERE r.type CONTAINS '册页' RETURN r.name, r.description, r.type LIMIT 5
+4. 某文物的材质：
+MATCH (r:CulturalRelic) WHERE r.name = '镂空模纹壶' 
+RETURN r.name, r.material_name, r.matrials
 
-5. 查找特定尺寸的文物：
-MATCH (r:CulturalRelic) WHERE r.size CONTAINS '高：3' RETURN r.name, r.description, r.size LIMIT 5
+5. 某文物的尺寸：
+MATCH (r:CulturalRelic) WHERE r.name = '镂空模纹壶' 
+RETURN r.name, r.size
 
-6. 查找不包含特定内容的文物：
-MATCH (r:CulturalRelic) WHERE NOT r.description CONTAINS '作者' RETURN r.name, r.description LIMIT 5
+6. 某文物的作者：
+MATCH (r:CulturalRelic) WHERE r.name = '镂空模纹壶' 
+RETURN r.name, r.author
 
-7. 查找多个条件的文物：
+7. 某文物收藏于哪个博物馆：
+MATCH (r:CulturalRelic)-[:所在博物馆]->(m:Museum) 
+WHERE r.name = '镂空模纹壶'
+RETURN r.name, m.museum_name
+
+8. 某博物馆的简介：
+MATCH (m:Museum) 
+WHERE toLower(m.museum_name) CONTAINS toLower('大英博物馆')
+   OR toLower(m.museum_name) CONTAINS toLower('British Museum')
+   OR toLower(m.museum_name) CONTAINS toLower('大英')
+RETURN m.museum_name, m.description
+
+9. 某朝代的所有文物：
 MATCH (r:CulturalRelic) 
-WHERE r.dynasty CONTAINS '清' AND r.description CONTAINS '纸本'
-RETURN r.name, r.description, r.dynasty, r.type LIMIT 5
+WHERE r.dynasty = '清代'
+RETURN r.name, r.description, r.dynasty
 
-8. 查找特定范围的文物：
+10. 某类型的所有文物：
 MATCH (r:CulturalRelic) 
-WHERE r.size CONTAINS '高：3' AND r.size CONTAINS '厘米'
-RETURN r.name, r.description, r.size LIMIT 5
+WHERE r.type = '木版画'
+RETURN r.name, r.description, r.type
 
-9. 查找特定朝代的特定类型文物：
+11. 某材质的所有文物：
 MATCH (r:CulturalRelic) 
-WHERE r.dynasty CONTAINS '清' AND r.type CONTAINS '册页'
-RETURN r.name, r.description, r.dynasty, r.type LIMIT 5
+WHERE r.material_name = '瓷器'
+   OR r.matrials = '瓷器'
+RETURN r.name, r.description, r.material_name, r.matrials
 
-10. 查找特定朝代的特定材质文物：
-MATCH (r:CulturalRelic) 
-WHERE r.dynasty CONTAINS '清' AND r.description CONTAINS '纸本'
-RETURN r.name, r.description, r.dynasty, r.type LIMIT 5
+12. 某博物馆的所有文物（带博物馆信息）：
+MATCH (r:CulturalRelic)-[:所在博物馆]->(m:Museum)
+WHERE toLower(m.museum_name) CONTAINS toLower('大英博物馆')
+   OR toLower(m.museum_name) CONTAINS toLower('British Museum')
+   OR toLower(m.museum_name) CONTAINS toLower('大英')
+RETURN r.name as relic_name, r.description as description, r.dynasty as dynasty,
+       r.type as type, r.size as size, r.material_name as material, m.museum_name as museum_name
+
+13. 某文物的图片：
+MATCH (r:CulturalRelic)-[:HAS_IMAGE]->(img) 
+WHERE r.name = '镂空模纹壶'
+RETURN img.img_url
 """
         
         messages = [
