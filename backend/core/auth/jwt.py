@@ -13,9 +13,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="v1/api/account/token")
 
 class TokenData(BaseModel):
-    user_id: int = None
-    phone_number: str = None
-    role_type: int = None
+    user_id: int
+    phone_number: str
+    role_type: int
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     """创建JWT访问令牌"""
@@ -40,7 +40,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         user_id: int = payload.get("user_id")
         phone_number: str = payload.get("phone_number")
         role_type: int = payload.get("role_type")
-        if user_id is None or phone_number is None:
+        if user_id is None or phone_number is None or role_type is None:
             raise credentials_exception
         token_data = TokenData(user_id=user_id, phone_number=phone_number, role_type=role_type)
     except JWTError:
